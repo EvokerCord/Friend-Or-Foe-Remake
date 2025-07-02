@@ -1,0 +1,113 @@
+# Made by BountyBear and hero123red456__
+# Friend Or Foe Smp Remake
+# Please don't claim it as yours or sell
+# Copyright ©2025 BountyBear and hero123red456__
+
+on load:
+	set {-tracker} to compass named "&aPlayer Tracker" with lore "&2Right Click To Select Target"
+	set {pvp.state} to "off"
+
+on join:
+	if {joined::%player's uuid%} is not set:
+		set {joined::%player's uuid%} to true
+		set {lives::%player's uuid%} to 10
+
+every 1 second:
+	loop all players:
+		if {lives::%loop-player's uuid%} > 1:
+			set loop-player's tab list name to "&f%loop-player's name%        &e%{lives::%loop-player's uuid%}%"
+		else:
+			ban loop-player due to "Out of lives"
+
+command /lives [<text>] [<text>] [<text>]:
+	trigger:
+		if arg-1 is set:
+			if arg-1 is "check":
+				if arg-2 is set:
+					set {_p} to arg-2 parsed as player
+					set {_uuid} to {_p}'s uuid
+					send "&F%{_p}% is on &e%{lives::%{_uuid}%}% &fLives" to player
+			if arg-1 is "set":
+				if player has permission "op":
+					if arg-2 is set:
+						set {_p} to arg-2 parsed as player
+						set {_uuid} to {_p}'s uuid
+						if arg-3 is set:
+							set {_i} to arg-3 parsed as integer
+							set {lives::%{_uuid}%} to {_i}
+
+on death of player:
+	remove 1 from {lives::%victim's uuid%}
+	send "&cYou lost 1 life!" to victim
+
+	if {lives::%victim's uuid%} <= 0:
+		execute console command "ban %victim% Out of lives"
+
+	if attacker is a player:
+		set {_killer} to attacker
+		set {_victim} to victim
+		if {tracker::%{_killer}'s uuid%} is {_victim's uuid}:
+			delete {tracker::%{_killer}'s uuid%}
+			delete {tracker-target-name::%{_killer}'s uuid%}
+			send "&cYou have killed your target. Tracking has stopped." to {_killer}
+
+command /pvp <text>:
+	permission: op
+	trigger:
+		if arg-1 is set:
+			if arg-1 is "ON":
+				set {pvp.state} to "on"
+				set {pvp.min} to 20
+				set {pvp.sec} to 60
+				send title "&4PVP" with subtitle "&cTurned On" to all players
+			if arg-1 is "OFF":
+				set {pvp.state} to "off"
+				set {pvp.min} to 0
+				set {pvp.sec} to 0
+				send title "&4PVP" with subtitle "&2Turned Off" to all players
+
+every 1 second:
+	if {pvp.min} > 0:
+		if {pvp.sec} > 1:
+			remove 1 from {pvp.sec}
+		else:
+			set {pvp.sec} to 60
+			remove 1 from {pvp.min}
+		loop all players:
+			send action bar "&4&lPVP: &c%{pvp.min}%:%{pvp.sec}%" to loop-player
+
+on damage:
+	if attacker is a player:
+		if victim is a player:
+			if {pvp.min} > 0:
+				cancel event
+
+command /givetracker <player>:
+	permission: op
+	trigger:
+		give {-tracker} to arg-1
+		send "&aTracker given to %arg-1%" to player
+
+on right click on player:
+	if player is holding a compass named "&aPlayer Tracker":
+		set {tracker::%player's uuid%} to clicked entity's uuid
+		set {tracker-target-name::%player's uuid%} to clicked entity's name
+		remove compass named "&aPlayer Tracker" from player's inventory
+		send "&aYou are now tracking &e%clicked entity%" to player
+
+every 15 minutes:
+	loop all players:
+		set {_tracker} to loop-player-1
+		set {_uuid} to {_tracker}'s uuid
+		if {tracker::%{_uuid}%} is set:
+			set {_target-uuid} to {tracker::%{_uuid}%}
+			
+			loop all players:
+				if loop-player-2's uuid is {_target-uuid}:
+					set {_x} to x-coordinate of loop-player-2
+					set {_y} to y-coordinate of loop-player-2
+					set {_z} to z-coordinate of loop-player-2
+					send "&aTracking &e%loop-player-2% &aat &eX:%{_x}% Y:%{_y}% Z:%{_z}%" to loop-player-1
+on consume:
+    if event-item is golden apple or enchanted golden apple:
+        cancel event
